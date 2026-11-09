@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KujangPulse — Synthetic Heartbeat & Dead-Man's Snitch Console</title>
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-canvas: #1f1633;
+      --bg-deep: #150f23;
+      --bg-surface: #241c3b;
+      --bg-elevated: #2d2349;
+      --border-subtle: #362d59;
+      --border-strong: #584674;
+      --accent-lime: #c2ef4e;
+      --accent-purple: #6a5fc1;
+      --btn-bg: #79628c;
+      --btn-border: #584674;
+      --text-white: #ffffff;
+      --text-secondary: #e5e7eb;
+      --text-muted: #9c9bb3;
+      --status-warning: #ffb287;
+      --status-danger: #fa7faa;
+      --font-ui: 'Rubik', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+      --shadow-inset: inset 0px 1px 3px 0px rgba(0, 0, 0, 0.25);
+      --shadow-ambient: 0px 4px 12px rgba(21, 15, 35, 0.85);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-secondary);
+      font-family: var(--font-ui);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Telemetry Strip */
+    .telemetry-strip {
+      background-color: var(--bg-deep);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      box-shadow: 0 0 12px rgba(194, 239, 78, 0.25);
+    }
+
+    .brand-title {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text-white);
+      letter-spacing: -0.02em;
+    }
+
+    .brand-tagline {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-grid {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .metric-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .metric-label {
+      font-family: var(--font-ui);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .metric-val {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-white);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-val.green { color: var(--accent-lime); }
+    .metric-val.purple { color: var(--accent-purple); }
+
+    /* Layout Containers */
+    .main-container {
+      max-width: 1360px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      flex: 1;
+    }
+
+    .split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 992px) {
+      .split-grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background-color: var(--bg-deep);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
+      color: var(--text-white);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      background: rgba(106, 95, 193, 0.2);
+      color: #b7afff;
+      border: 1px solid var(--border-strong);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Forms & Controls */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    select, input, textarea {
+      background-color: var(--bg-canvas);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-white);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    select:focus, input:focus, textarea:focus {
+      border-color: var(--accent-purple);
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* Sentry Tactile Buttons */
+    .btn {
+      font-family: var(--font-ui);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
+      padding: 8px 16px;
+      border-radius: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease-in-out;
+      border: 1px solid transparent;
+      outline: none;
+    }
+
+    .btn-tactile {
+      background-color: var(--btn-bg);
+      color: var(--text-white);
+      border-color: var(--btn-border);
+      box-shadow: var(--shadow-inset);
+    }
+
+    .btn-tactile:hover {
+      background-color: #8a719f;
+      box-shadow: 0 4px 12px rgba(106, 95, 193, 0.3);
+    }
+
+    .btn-lime {
+      background-color: var(--accent-lime);
+      color: #150f23;
+      border-color: #a8d63a;
+      box-shadow: 0 2px 8px rgba(194, 239, 78, 0.3);
+    }
+
+    .btn-lime:hover {
+      background-color: #d1f768;
+    }
+
+    .btn-danger {
+      background-color: rgba(250, 127, 170, 0.15);
+      color: var(--status-danger);
+      border-color: var(--status-danger);
+    }
+
+    .btn-danger:hover {
+      background-color: rgba(250, 127, 170, 0.3);
+    }
+
+    .btn-ghost {
+      background-color: transparent;
+      color: var(--text-secondary);
+      border-color: var(--border-subtle);
+    }
+
+    .btn-ghost:hover {
+      background-color: var(--bg-surface);
+      border-color: var(--border-strong);
+    }
+
+    /* Status Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-healthy {
+      background: rgba(194, 239, 78, 0.12);
+      color: var(--accent-lime);
+      border: 1px solid rgba(194, 239, 78, 0.35);
+    }
+
+    .badge-grace {
+      background: rgba(255, 178, 135, 0.12);
+      color: var(--status-warning);
+      border: 1px solid rgba(255, 178, 135, 0.35);
+    }
+
+    .badge-danger {
+      background: rgba(250, 127, 170, 0.12);
+      color: var(--status-danger);
+      border: 1px solid rgba(250, 127, 170, 0.35);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .badge-healthy .dot { background: var(--accent-lime); box-shadow: 0 0 6px var(--accent-lime); }
+    .badge-grace .dot { background: var(--status-warning); }
+    .badge-danger .dot { background: var(--status-danger); box-shadow: 0 0 6px var(--status-danger); }
+
+    /* Code Display Terminal */
+    .code-terminal {
+      background-color: #0d0917;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.6;
+      color: #e2e8f0;
+      overflow-x: auto;
+      position: relative;
+    }
+
+    .code-terminal pre { margin: 0; }
+    .code-keyword { color: #fa7faa; }
+    .code-string { color: var(--accent-lime); }
+    .code-number { color: #ffb287; }
+    .code-comment { color: var(--text-muted); }
+
+    /* Hysteresis Step Bar */
+    .hysteresis-bar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .h-step {
+      flex: 1;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      transition: all 0.2s;
+    }
+
+    .h-step.active-fail {
+      background: var(--status-danger);
+      border-color: #ff5b8f;
+      box-shadow: 0 0 8px rgba(250, 127, 170, 0.4);
+    }
+
+    .h-step.active-ok {
+      background: var(--accent-lime);
+      border-color: #b5e43a;
+      box-shadow: 0 0 8px rgba(194, 239, 78, 0.4);
+    }
+
+    /* Table Component */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 10px 12px;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(54, 45, 89, 0.5);
+      font-size: 13px;
+    }
+
+    tr:hover td {
+      background-color: rgba(41, 31, 66, 0.4);
+    }
+
+    .mono-cell {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Latency Sparkline */
+    .sparkline {
+      display: inline-flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 18px;
+      vertical-align: middle;
+    }
+
+    .spark-bar {
+      width: 4px;
+      background: var(--accent-purple);
+      border-radius: 1px;
+    }
+
+    .spark-bar.high {
+      background: var(--status-warning);
+    }
+
+    /* SLA Slider Container */
+    .slider-box {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: var(--bg-surface);
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: var(--border-subtle);
+      height: 6px;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent-lime);
+      cursor: pointer;
+      box-shadow: 0 0 6px var(--accent-lime);
+    }
+
+    footer {
+      background-color: var(--bg-deep);
+      border-top: 1px solid var(--border-subtle);
+      padding: 16px 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Telemetry Strip -->
+  <header class="telemetry-strip">
+    <div class="brand-section">
+      <img src="logo.svg" alt="KujangPulse Logo" class="brand-icon">
+      <div>
+        <div class="brand-title">KUJANGPULSE</div>
+        <div class="brand-tagline">Self-Hosted Heartbeat & SLA Authority</div>
+      </div>
+    </div>
+
+    <div class="metric-grid">
+      <div class="metric-item">
+        <span class="metric-label">Fleet Availability</span>
+        <span class="metric-val green" id="metric-fleet-sla">99.984%</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Active Snitches</span>
+        <span class="metric-val" id="metric-active-count">6 / 6 Live</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Rolling MTTR</span>
+        <span class="metric-val purple" id="metric-mttr">3m 45s</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">30d Error Budget</span>
+        <span class="metric-val green" id="metric-error-budget">41m 24s left</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-label">Engine Stack</span>
+        <span class="metric-val">PHP 8.2 / Laravel 11</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="main-container">
+
+    <!-- Split Monitor & Operate -->
+    <div class="split-grid">
+
+      <!-- Left Column: Dead-Man's Snitch Interactive Harness -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Dead-Man's Snitch Pulse Injector</span>
+            <span class="card-title-badge">Simulator</span>
+          </div>
+          <span class="badge badge-healthy" id="active-snitch-status">
+            <span class="dot"></span>
+            <span id="active-snitch-status-text">HEALTHY</span>
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label for="snitch-select">Select Monitored Cron Job</label>
+          <select id="snitch-select" onchange="switchSnitch()">
+            <option value="snitch-db-backup">Database Nightly S3 Backup (Every 24h, Grace: 60m)</option>
+            <option value="snitch-invoice-worker" selected>Invoice Billing Dispatcher (Every 5m, Grace: 60s)</option>
+            <option value="snitch-telemetry-ingest">Kafka Stream Telemetry Ingest (Every 1m, Grace: 20s)</option>
+            <option value="snitch-qris-settlement">QRIS Mutator Reconciliation (Every 10m, Grace: 120s)</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label for="input-latency">Execution Duration (ms)</label>
+            <input type="number" id="input-latency" value="48.5" step="0.5">
+          </div>
+          <div class="form-group">
+            <label for="input-memory">Memory Usage (MB)</label>
+            <input type="number" id="input-memory" value="16.2" step="0.1">
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button class="btn btn-lime" onclick="sendHeartbeat('healthy')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Send Healthy Pulse
+          </button>
+          <button class="btn btn-tactile" onclick="sendHeartbeat('grace')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Simulate Jitter Grace
+          </button>
+          <button class="btn btn-danger" onclick="sendHeartbeat('fail')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            Report Job Failure
+          </button>
+        </div>
+
+        <!-- Pulse Terminal Feedback -->
+        <div class="code-terminal" id="pulse-log">
+          <pre><span class="code-comment">// Ready. Inject a heartbeat pulse or failure to evaluate transitions.</span>
+<span class="code-keyword">POST</span> /api/v1/snitches/7f9a2e1c-54a8/ping
+<span class="code-string">Status: 200 OK</span> · Last duration: 48.5ms · Next expected: +300s</pre>
+        </div>
+      </section>
+
+      <!-- Right Column: Escalation Matrix & Flapping Guard -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Escalation Matrix & Flapping Guard</span>
+            <span class="card-title-badge">Hysteresis (3 Fail / 2 OK)</span>
+          </div>
+          <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);" id="incident-state-label">Incident: CLOSED</span>
+        </div>
+
+        <div>
+          <label>Failure Dampening Gauge (Requires 3 consecutive misses before SEV-1)</label>
+          <div class="hysteresis-bar">
+            <div class="h-step" id="fail-step-1"></div>
+            <div class="h-step" id="fail-step-2"></div>
+            <div class="h-step" id="fail-step-3"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-top: 4px;">
+            <span>1 Miss: Suppressed</span>
+            <span>2 Misses: Warning (SEV-3)</span>
+            <span>3 Misses: SEV-1 Alert Dispatched</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 11px;" onclick="renderAlertPayload('telegram')">Telegram Card</button>
+          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 11px;" onclick="renderAlertPayload('discord')">Discord Embed</button>
+          <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 11px;" onclick="renderAlertPayload('webhook')">HMAC Webhook</button>
+        </div>
+
+        <div class="code-terminal" id="alert-payload-viewer" style="height: 140px;">
+          <pre id="alert-payload-code"></pre>
+        </div>
+
+        <!-- 30-Day SLA Budget Calculator -->
+        <div class="slider-box">
+          <div class="slider-header">
+            <span>Target SLA: <strong id="sla-target-display" style="color: var(--accent-lime);">99.9%</strong></span>
+            <span>Max Downtime Allowed: <strong id="sla-allowed-display">43m 12s</strong></span>
+          </div>
+          <input type="range" id="sla-slider" min="95.0" max="99.99" step="0.01" value="99.9" oninput="updateSlaCalculation()">
+          <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted);">
+            <span>95.0% (36h budget)</span>
+            <span>99.0% (7.2h budget)</span>
+            <span>99.9% (43m budget)</span>
+            <span>99.99% (4.3m budget)</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Bottom Section: Fleet Health Ledger -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>Fleet Health Ledger & Synthetic Latency Percentiles</span>
+          <span class="card-title-badge">Real-Time Monitor</span>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center; font-family: var(--font-mono); font-size: 11px;">
+          <span>P50: <strong class="green" style="color: var(--accent-lime);">24.2ms</strong></span>
+          <span>P95: <strong style="color: var(--status-warning);">68.1ms</strong></span>
+          <span>P99: <strong style="color: var(--status-danger);">142.0ms</strong></span>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Job / Microservice</th>
+              <th>Schedule</th>
+              <th>Last Pulse</th>
+              <th>Next Expected</th>
+              <th>Latency / Sparkline</th>
+              <th>30d Availability</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="snitch-table-body">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    KujangPulse v1.0.0 · Self-Hosted Synthetic Heartbeat & SLA Authority · Designed with Sentry Design Tokens (#1f1633 / #c2ef4e) · Laravel 11 & PHP 8.2 Architecture
+  </footer>
+
+  <script>
+    // In-memory data store for live operator console
+    const snitches = [
+      {
+        id: "snitch-invoice-worker",
+        name: "Invoice Billing Dispatcher",
+        schedule: "Every 5 min",
+        interval: 300,
+        grace: 60,
+        lastPing: "Just now",
+        nextExpected: "in 4m 58s",
+        latency: 48.5,
+        latencies: [30, 42, 38, 55, 48, 49],
+        sla: "99.992%",
+        status: "HEALTHY",
+        failures: 0
+      },
+      {
+        id: "snitch-db-backup",
+        name: "Database Nightly S3 Backup",
+        schedule: "Every 24h",
+        interval: 86400,
+        grace: 3600,
+        lastPing: "4 hours ago",
+        nextExpected: "in 20 hours",
+        latency: 1240.0,
+        latencies: [1100, 1300, 1250, 1240],
+        sla: "100.00%",
+        status: "HEALTHY",
+        failures: 0
+      },
+      {
+        id: "snitch-telemetry-ingest",
+        name: "Kafka Stream Telemetry Ingest",
+        schedule: "Every 1 min",
+        interval: 60,
+        grace: 20,
+        lastPing: "35s ago",
+        nextExpected: "in 25s",
+        latency: 18.2,
+        latencies: [15, 18, 22, 19, 18],
+        sla: "99.988%",
+        status: "HEALTHY",
+        failures: 0
+      },
+      {
+        id: "snitch-qris-settlement",
+        name: "QRIS Mutator Reconciliation",
+        schedule: "Every 10 min",
+        interval: 600,
+        grace: 120,
+        lastPing: "2m ago",
+        nextExpected: "in 8m",
+        latency: 95.4,
+        latencies: [80, 95, 110, 88, 95],
+        sla: "99.954%",
+        status: "HEALTHY",
+        failures: 0
+      },
+      {
+        id: "snitch-email-dmarc",
+        name: "DMARC Forensic Report Parser",
+        schedule: "Every 1h",
+        interval: 3600,
+        grace: 300,
+        lastPing: "18m ago",
+        nextExpected: "in 42m",
+        latency: 64.0,
+        latencies: [55, 60, 68, 64],
+        sla: "99.980%",
+        status: "HEALTHY",
+        failures: 0
+      },
+      {
+        id: "snitch-ssl-cert-check",
+        name: "SSL Certificate Expiry Probe",
+        schedule: "Every 12h",
+        interval: 43200,
+        grace: 1800,
+        lastPing: "1h ago",
+        nextExpected: "in 11 hours",
+        latency: 210.0,
+        latencies: [190, 220, 205, 210],
+        sla: "100.00%",
+        status: "HEALTHY",
+        failures: 0
+      }
+    ];
+
+    let currentSnitchId = "snitch-invoice-worker";
+    let failureCount = 0;
+    let incidentOpen = false;
+
+    function renderTable() {
+      const tbody = document.getElementById("snitch-table-body");
+      tbody.innerHTML = "";
+
+      snitches.forEach(s => {
+        let statusBadge = `<span class="badge badge-healthy"><span class="dot"></span>${s.status}</span>`;
+        if (s.status === 'GRACE_EXCEEDED') {
+          statusBadge = `<span class="badge badge-grace"><span class="dot"></span>GRACE</span>`;
+        } else if (s.status === 'MISSED' || s.status === 'CRITICAL_DOWN') {
+          statusBadge = `<span class="badge badge-danger"><span class="dot"></span>DOWN</span>`;
+        }
+
+        // Sparkline bars
+        const maxLat = Math.max(...s.latencies, 100);
+        const barsHtml = s.latencies.slice(-5).map(val => {
+          const h = Math.max(4, Math.min(18, Math.round((val / maxLat) * 18)));
+          const isHigh = val > 100 ? 'high' : '';
+          return `<div class="spark-bar ${isHigh}" style="height:${h}px"></div>`;
+        }).join('');
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong>${s.name}</strong><br><span style="font-family: var(--font-mono); font-size:10px; color: var(--text-muted);">${s.id}</span></td>
+          <td class="mono-cell">${s.schedule}</td>
+          <td class="mono-cell">${s.lastPing}</td>
+          <td class="mono-cell">${s.nextExpected}</td>
+          <td class="mono-cell"><div class="sparkline">${barsHtml}</div> ${s.latency}ms</td>
+          <td class="mono-cell" style="color: var(--accent-lime);">${s.sla}</td>
+          <td>${statusBadge}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function switchSnitch() {
+      currentSnitchId = document.getElementById("snitch-select").value;
+      const s = snitches.find(item => item.id === currentSnitchId);
+      if (s) {
+        document.getElementById("input-latency").value = s.latency;
+        updateActiveStatus(s.status);
+      }
+    }
+
+    function updateActiveStatus(status) {
+      const badge = document.getElementById("active-snitch-status");
+      const text = document.getElementById("active-snitch-status-text");
+      badge.className = "badge";
+      text.innerText = status;
+
+      if (status === 'HEALTHY') {
+        badge.classList.add("badge-healthy");
+      } else if (status === 'GRACE_EXCEEDED') {
+        badge.classList.add("badge-grace");
+      } else {
+        badge.classList.add("badge-danger");
+      }
+    }
+
+    function updateHysteresisGauge() {
+      document.getElementById("fail-step-1").className = "h-step" + (failureCount >= 1 ? " active-fail" : "");
+      document.getElementById("fail-step-2").className = "h-step" + (failureCount >= 2 ? " active-fail" : "");
+      document.getElementById("fail-step-3").className = "h-step" + (failureCount >= 3 ? " active-fail" : "");
+
+      const label = document.getElementById("incident-state-label");
+      if (failureCount >= 3) {
+        incidentOpen = true;
+        label.innerText = "Incident: OPEN (SEV-1 DISPATCHED)";
+        label.style.color = "var(--status-danger)";
+      } else if (incidentOpen && failureCount === 0) {
+        incidentOpen = false;
+        label.innerText = "Incident: RESOLVED (AUTO-CLEARED)";
+        label.style.color = "var(--accent-lime)";
+      } else if (failureCount > 0) {
+        label.innerText = `Incident: DAMPENED (${failureCount}/3 failures)`;
+        label.style.color = "var(--status-warning)";
+      } else {
+        label.innerText = "Incident: CLOSED";
+        label.style.color = "var(--text-muted)";
+      }
+    }
+
+    function sendHeartbeat(type) {
+      const s = snitches.find(item => item.id === currentSnitchId);
+      const logPre = document.querySelector("#pulse-log pre");
+      const latency = parseFloat(document.getElementById("input-latency").value) || 25.0;
+
+      if (type === 'healthy') {
+        s.status = 'HEALTHY';
+        s.lastPing = "Just now";
+        s.latency = latency;
+        s.latencies.push(latency);
+        failureCount = Math.max(0, failureCount - 1);
+        updateActiveStatus('HEALTHY');
+        updateHysteresisGauge();
+
+        logPre.innerHTML = `<span class="code-comment">// [${new Date().toLocaleTimeString()}] Healthy pulse registered</span>\n` +
+          `<span class="code-keyword">POST</span> /api/v1/snitches/${s.id}/ping\n` +
+          `<span class="code-string">200 OK</span> · Next check: +${s.interval}s · Latency: ${latency}ms · Exit: 0`;
+      } else if (type === 'grace') {
+        s.status = 'GRACE_EXCEEDED';
+        updateActiveStatus('GRACE_EXCEEDED');
+        logPre.innerHTML = `<span class="code-comment">// [${new Date().toLocaleTimeString()}] Warning: Schedule deadline passed</span>\n` +
+          `<span class="code-keyword">CHECK</span> /api/v1/snitches/${s.id}/status\n` +
+          `<span style="color:var(--status-warning)">420 GRACE_EXCEEDED</span> · Buffer active: ${s.grace}s tolerance remaining`;
+      } else if (type === 'fail') {
+        s.status = 'CRITICAL_DOWN';
+        failureCount++;
+        updateActiveStatus('CRITICAL_DOWN');
+        updateHysteresisGauge();
+
+        logPre.innerHTML = `<span class="code-comment">// [${new Date().toLocaleTimeString()}] Non-zero exit code or missed deadline</span>\n` +
+          `<span class="code-keyword">POST</span> /api/v1/snitches/${s.id}/fail\n` +
+          `<span class="code-keyword">500 CRITICAL_DOWN</span> · Exit code: 1 · Failure count: ${failureCount}`;
+        
+        renderAlertPayload('telegram');
+      }
+
+      renderTable();
+    }
+
+    function renderAlertPayload(format) {
+      const s = snitches.find(item => item.id === currentSnitchId);
+      const code = document.getElementById("alert-payload-code");
+      const ts = new Date().toISOString();
+
+      if (format === 'telegram') {
+        code.innerHTML = 
+`🚨 <b>HEARTBEAT INCIDENT DETECTED (SEV-1)</b>
+
+• <b>Service</b>: <code>${s.name}</code> (<code>${s.id}</code>)
+• <b>Severity</b>: SEV-1 CRITICAL
+• <b>Status</b>: DOWN (3 consecutive missed check-ins)
+• <b>Duration Overdue</b>: +180s
+• <b>Timestamp</b>: <code>${ts}</code>
+• <b>Action</b>: <a href="https://kujangpulse.internal/incident/view">Acknowledge Alert</a>`;
+      } else if (format === 'discord') {
+        code.innerText = JSON.stringify({
+          username: "KujangPulse Monitor",
+          embeds: [{
+            title: `🚨 [SEV-1] ${s.name}`,
+            description: "Service missed 3 consecutive check-in windows. Flapping guard triggered escalation.",
+            color: 16416682,
+            fields: [
+              { name: "Snitch ID", value: s.id, inline: true },
+              { name: "Severity", value: "SEV-1", inline: true },
+              { name: "Status", value: "CRITICAL_DOWN", inline: true }
+            ],
+            timestamp: ts
+          }]
+        }, null, 2);
+      } else if (format === 'webhook') {
+        code.innerText = 
+`POST /webhooks/incidents HTTP/1.1
+Host: api.internal.corp
+X-KujangPulse-Timestamp: ${Math.floor(Date.now() / 1000)}
+X-KujangPulse-Signature: sha256=d3b07384d113edec49eaa6238ad5ff00...
+Content-Type: application/json
+
+{
+  "event": "heartbeat.incident",
+  "action": "OPEN_INCIDENT",
+  "severity": "SEV-1",
+  "snitch_id": "${s.id}",
+  "consecutive_failures": ${failureCount || 3}
+}`;
+      }
+    }
+
+    function updateSlaCalculation() {
+      const target = parseFloat(document.getElementById("sla-slider").value);
+      document.getElementById("sla-target-display").innerText = target.toFixed(2) + "%";
+
+      // 30 days = 43200 minutes
+      const totalMinutes = 43200;
+      const allowedMinutes = totalMinutes * (1 - (target / 100));
+      
+      let displayTime = "";
+      if (allowedMinutes >= 60) {
+        const hours = Math.floor(allowedMinutes / 60);
+        const mins = Math.round(allowedMinutes % 60);
+        displayTime = `${hours}h ${mins}m`;
+      } else {
+        const mins = Math.floor(allowedMinutes);
+        const secs = Math.round((allowedMinutes - mins) * 60);
+        displayTime = `${mins}m ${secs}s`;
+      }
+
+      document.getElementById("sla-allowed-display").innerText = displayTime;
+    }
+
+    // Initialize UI
+    renderTable();
+    renderAlertPayload('telegram');
+    updateHysteresisGauge();
+  </script>
+</body>
+</html>

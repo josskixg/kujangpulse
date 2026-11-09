@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"><title>KujangPulse</title><g transform="translate(5.12 5.12) scale(0.96)">
+  
+  <rect width="256" height="256" rx="48" fill="#150f23"/>
+  <!-- Kujang Blade Outer Contour (Purple) -->
+  <path fill="#6a5fc1" fill-rule="evenodd" d="M 128 48 L 192 112 L 192 160 L 160 192 L 128 192 L 96 160 L 96 128 L 64 128 L 64 96 L 96 64 L 128 48 Z M 128 96 L 160 128 L 160 160 L 128 160 Z"/>
+  <!-- Cardiogram Heartbeat Pulse (Lime Green) -->
+  <path fill="#c2ef4e" d="M 48 144 L 80 144 L 96 112 L 128 176 L 144 144 L 208 144 L 208 160 L 152 160 L 128 208 L 104 160 L 88 160 L 72 176 L 48 176 Z"/>
+  <!-- Mata Kujang Heartbeat Perforations -->
+  <circle cx="160" cy="80" r="12" fill="#c2ef4e"/>
+  <circle cx="176" cy="96" r="8" fill="#ffffff"/>
+</g></svg>
