@@ -2,6 +2,12 @@
 
 namespace Tests\Unit;
 
+require_once __DIR__ . '/../../app/Services/PingTokenService.php';
+require_once __DIR__ . '/../../app/Services/DeadMansSnitchService.php';
+require_once __DIR__ . '/../../app/Services/EscalationMatrixService.php';
+require_once __DIR__ . '/../../app/Services/SlaTelemetryEngine.php';
+require_once __DIR__ . '/../../app/Http/Controllers/HeartbeatController.php';
+
 use App\Services\DeadMansSnitchService;
 use App\Services\EscalationMatrixService;
 use App\Services\PingTokenService;
@@ -342,4 +348,22 @@ class KujangPulseTest
         $this->assertTrue($percentiles['p99_ms'] >= 230.0);
         $this->assertTrue($percentiles['ewma_ms'] > 0);
     }
+}
+
+$runner = new KujangPulseTest();
+$results = $runner->runAll();
+$passed = 0; $failed = 0;
+foreach ($results as $method => $res) {
+    if ($res['status'] === 'PASS') {
+        $passed++;
+    } else {
+        $failed++;
+        echo "[FAIL] $method: {$res['error']} on line {$res['line']}\n";
+    }
+}
+if ($failed > 0) {
+    echo "FAILED: $failed tests failed out of " . ($passed + $failed) . "\n";
+    exit(1);
+} else {
+    echo "PASS: All $passed KujangPulse tests passed successfully.\n";
 }

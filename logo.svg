@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <title>KujangPulse Logo</title>
-  <rect width="256" height="256" rx="48" fill="#150f23"/>
   <!-- Kujang Blade Outer Contour (Purple) -->
   <path fill="#6a5fc1" fill-rule="evenodd" d="M 128 48 L 192 112 L 192 160 L 160 192 L 128 192 L 96 160 L 96 128 L 64 128 L 64 96 L 96 64 L 128 48 Z M 128 96 L 160 128 L 160 160 L 128 160 Z"/>
   <!-- Cardiogram Heartbeat Pulse (Lime Green) -->
